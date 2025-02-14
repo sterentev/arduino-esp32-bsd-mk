@@ -17,12 +17,6 @@
 # ARDUINO_PORT		Serial port device for programming the board
 #					/dev/cuaU0 will be used if not set
 #
-# Programming options:
-#
-# ARDUINO_CFLAGS	Additional CFLAGS for sketch modules
-# ARDUINO_CXXFLAGS	Additional CXXFLAGS for sketch modules
-# HFILES		Includes files (used for tags)
-#
 
 .if exists(${.CURDIR}/Makefile.inc)
 .include "${.CURDIR}/Makefile.inc"
