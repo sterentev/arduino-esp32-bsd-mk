@@ -1,0 +1,47 @@
+#!/bin/sh
+
+VERSION="0.3"
+
+usage() {
+    echo "Usage:"
+    echo "	$0 [-H] '<List of top dirs for search>' '<List of libs (dirs) names>'"
+    echo "Where:"
+    echo "	-H	- search for .h headers (.c .cpp otherwise)"
+    echo
+}
+
+# Get options
+OH=""
+while getopts Hh opt; do
+    case $opt in
+        H) OH="1"; shift 1 ;;
+        *) usage; exit 0 ;;
+    esac
+done
+
+if [ $# -lt 2 ]; then
+    usage
+    exit 1
+fi
+
+TOPDIRS=$1
+LIBDIRS=$2
+
+# Find first dir name occurence in the list of top dirs
+DIRS=""
+for LIB in $LIBDIRS; do
+    DIRS="${DIRS} $(find $TOPDIRS -depth 1 -type d \( -name "${LIB}" \) 2>/dev/null | head -n 1)"
+done
+
+SRCS=""
+for DIR in $DIRS; do
+    if [ "$OH" = "1" ]; then
+        SRCS="${SRCS}\n$(find "${DIR}" "${DIR}/utility" -depth 1 -type f \( -name '*.h' \) 2>/dev/null)"
+        SRCS="${SRCS}\n$(find "${DIR}/src" "${DIR}/utility/src"  -type f \( -name '*.h' \) 2>/dev/null)"
+    else
+        SRCS="${SRCS}\n$(find "${DIR}" "${DIR}/utility" -depth 1 -type f \( -name '*.cpp' -o -name '*.c' \) 2>/dev/null)"
+        SRCS="${SRCS}\n$(find "${DIR}/src" "${DIR}/utility/src"  -type f \( -name '*.cpp' -o -name '*.c' \) 2>/dev/null)"
+    fi
+done
+
+echo -e "$SRCS" | sed -e '/^$/d'

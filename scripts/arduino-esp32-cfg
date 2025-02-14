@@ -1,0 +1,176 @@
+#!/bin/sh
+
+VERSION="0.5"
+
+usage() {
+    echo "Usage:"
+    echo "	$0 [-h] [-e] [-m SELECTED] [-c EXTRAXFG] [-d DIR] BOARD PARAM"
+    echo "Where:"
+    echo "	-h	- show this help"
+    echo "	-e	- return undefined value as empty string"
+    echo "	-m SELECTED	- board menu selections"
+    echo "		example: \"PartitionScheme.min_spiffs CPUFreq.40 UploadSpeed.115200\""
+    echo "	-c EXTRACFG	- extra config vars"
+    echo "		example: \"build.project_name=Test\nbuild.path=.\""
+    echo "	-d DIR		- specify path to arduino-esp32 directory"
+    echo "		(where boards.txt and platform.txt located in)"
+    echo
+}
+
+arduinover() {
+    if [ -r ${APATH}/../../../lib/version.txt ]; then
+        head -n 1 ${APATH}/../../../lib/version.txt \
+            | awk -F '.' '{ for (i = 1; i <= NF/2; ++i) { t = $i; $i = $(NF-i+1); $(NF-i+1) = t } }; 1' | awk -F ' ' '{ print 10000 * $3 + 100 * $2 + $1 }'
+    else
+        echo "???"
+    fi
+}
+
+fqbn() {
+    echo "espressif:esp32:${BOARD}:${MSEL}" | tr '.' '=' | tr ' ' ','
+}
+
+# Merge config with overrides
+mergeCfg() {
+    IFS='
+'
+    set -f
+    local LINE
+    for LINE in $1; do
+        local VAR=`echo "${LINE}" | cut -d "=" -f 1`
+        local VAL=`echo "${LINE}" | cut -d "=" -f 2-`
+        CFG=`echo "$CFG" | sed "/^${VAR}=/d"`
+        CFG=`echo "$CFG"; echo "${VAR}=${VAL}"`
+    done
+    set +f
+    unset IFS
+}
+
+# Substitute params in dependent param value
+evaluateVal() {
+    local STR="$1"
+    while
+        local FROM=`echo "$STR" | grep -o "{[^{}]*}" | head -n 1`
+        [ "$FROM" != "" ]
+    do
+        local VAR=`echo "$FROM" | sed "s/^{//" | sed "s/}\$//"`
+        if [ `echo "$CFG" | grep -c "^${VAR}="` -eq 0 -a "$OEMPTYOK" = "" ]; then
+            echo "${0}: Can't find '${FROM}' for '${PARAM}' substitution" 1>&2
+            exit 1
+        fi
+        local TO=`echo "$CFG" | grep "^${VAR}=" | cut -d "=" -f 2-`
+        # Not sure which delimiter is safe here, # looks Ok
+        STR=`echo "$STR" | sed "s#${FROM}#${TO}#g"`
+    done
+    echo "$STR"
+}
+
+# Added this due to a bug in platform.txt
+# See  https://github.com/Sloeber/arduino-eclipse-plugin/issues/1649
+# (core chip-debug-report.cpp not complied properly)
+argFixer() {
+    local VARS="runtime.os build.arch build.fqbn build.board build.variant"
+    local VAR
+    for VAR in $VARS; do
+        local VAL=`echo "$CFG" | grep "^${VAR}=" | cut -d "=" -f 2-`
+        CFG=`echo "$CFG" | sed "/^${VAR}=/d"`
+        CFG=`echo "$CFG"; echo "${VAR}='${VAL}'"`
+    done
+}
+
+# Get options
+OEMPTYOK=""
+MSEL=""
+ECFG=""
+APATH="/usr/local/arduino/hardware/espressif/esp32"
+
+while getopts d:m:c:he opt; do
+    case $opt in
+        d) APATH="$OPTARG"; shift 2 ;;
+        m) MSEL="$OPTARG"; shift 2 ;;
+        c) ECFG="$OPTARG"; shift 2 ;;
+        e) OEMPTYOK="1"; shift ;;
+        *) usage; exit 0 ;;
+    esac
+done
+
+if [ $# -lt 2 ]; then
+    usage
+    exit 1
+fi
+
+BOARDSTXT="${APATH}/boards.txt"
+PLATFORMTXT="${APATH}/platform.txt"
+PLATFORMLOCALTXT="${APATH}/platform.local.txt"
+
+if [ ! -r "${BOARDSTXT}" ]; then
+    echo "${0}: Can't find '${BOARDSTXT}'" 1>&2
+    exit 1
+elif [ ! -r "${PLATFORMTXT}" ]; then
+    echo "${0}: Can't find '${PLATFORMTXT}'" 1>&2
+    exit 1
+fi
+
+BOARD=$1
+PARAM=$2
+
+# platform.txt
+CFG=`grep -h -v "^#" "${PLATFORMTXT}" | sed '/^$/d'`
+# platform.local.txt if exists
+if [ -r "${APATH}/platform.local.txt" ]; then
+    OVR=`grep -h -v "^#" "${PLATFORMLOCALTXT}" | sed '/^$/d'`
+    mergeCfg "$OVR"
+fi
+
+# Then boards.txt
+BRDTXT=`grep -h "^${BOARD}\." "${BOARDSTXT}"`
+OVR=`echo "$BRDTXT" | grep -v "^${BOARD}\.menu\." | sed "s=^${BOARD}\.=="`
+mergeCfg "$OVR"
+
+# By default select and apply each 1st menu item
+MENUS="`grep -h "^menu\." "${APATH}/boards.txt" | cut -d '=' -f 1 | cut -d '.' -f 2`"
+for MENU in $MENUS; do
+    OPT=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\." | head -n 1 | cut -d '=' -f 1 | cut -d '.' -f 4`
+    if [ "$OPT" != "" ]; then 
+        OVR=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\.${OPT}\." | sed "s=^${BOARD}\.menu\.${MENU}\.${OPT}\.=="`
+        mergeCfg "$OVR"
+    fi
+done
+# Override by menu selections from cmd
+for SEL in $MSEL; do
+    MENU=`echo "${SEL}" | cut -d "." -f 1`
+    OPT=`echo "${SEL}" | cut -d "." -f 2`
+    OVR=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\.${OPT}\." | sed "s=^${BOARD}\.menu\.${MENU}\.${OPT}\.=="`
+    mergeCfg "$OVR"
+done
+
+# Some extra params
+OVR="runtime.platform.path=${APATH}
+runtime.os=`uname`
+runtime.ide.version=$(arduinover)
+build.arch=ESP32
+build.fqbn=$(fqbn)"
+mergeCfg "$OVR"
+
+# Cmd overrides if specified
+if [ "${ECFG}" != "" ]; then
+    OVR=`echo -e "${ECFG}"`
+    mergeCfg "$OVR"
+fi
+
+# Patch for bad compiler args
+argFixer
+
+# Get requested param
+LINE=`echo "$CFG" | grep "^${PARAM}="`
+if [ $? -ne 0 ]; then
+    if [ "$OEMPTYOK" = "1" ]; then
+        echo ""
+        exit 0
+    else
+        echo "${0}: Can't find ${BOARD}.${PARAM}" 1>&2
+        exit 1
+    fi
+fi
+
+evaluateVal "`echo $LINE | cut -d '=' -f 2-`"
