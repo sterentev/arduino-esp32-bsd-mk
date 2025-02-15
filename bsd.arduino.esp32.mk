@@ -58,7 +58,7 @@ ARDUINO_ESP32_DIR=	${ARDUINO_DIR}/hardware/espressif/esp32
 ARDUINO_PORT?=	/dev/cuaU0
 EXTRA_CFG?=	build.project_name=${TARGET}\nbuild.path=.\nbuild.source.path=.\nbuild.variant.path=.\nserial.port=${ARDUINO_PORT}
 CFG_SCRIPT=	${ARDUINO_MK_DIR}/scripts/arduino-esp32-cfg -d "${ARDUINO_ESP32_DIR}" -c "${EXTRA_CFG}" -m "${ARDUINO_BOARD_CFG}" ${ARDUINO_BOARD}
-
+CLEANFILES+=	arduino-esp32-cfg.cache
 
 all:	size
 

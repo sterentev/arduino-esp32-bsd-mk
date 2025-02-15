@@ -1,6 +1,8 @@
 #!/bin/sh
 
-VERSION="0.5"
+VERSION="0.6"
+
+CACHEFILE="arduino-esp32-cfg.cache"
 
 usage() {
     echo "Usage:"
@@ -44,6 +46,47 @@ mergeCfg() {
     done
     set +f
     unset IFS
+}
+
+# Prepare config based on BOARD and MSEL selection
+getCfg() {
+    # platform.txt
+    CFG=`grep -h -v "^#" "${PLATFORMTXT}" | sed '/^$/d'`
+    # platform.local.txt if exists
+    if [ -r "${APATH}/platform.local.txt" ]; then
+        OVR=`grep -h -v "^#" "${PLATFORMLOCALTXT}" | sed '/^$/d'`
+        mergeCfg "$OVR"
+    fi
+
+    # Then boards.txt
+    BRDTXT=`grep -h "^${BOARD}\." "${BOARDSTXT}"`
+    OVR=`echo "$BRDTXT" | grep -v "^${BOARD}\.menu\." | sed "s=^${BOARD}\.=="`
+    mergeCfg "$OVR"
+
+    # By default select and apply each 1st menu item
+    MENUS="`grep -h "^menu\." "${APATH}/boards.txt" | cut -d '=' -f 1 | cut -d '.' -f 2`"
+    for MENU in $MENUS; do
+        OPT=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\." | head -n 1 | cut -d '=' -f 1 | cut -d '.' -f 4`
+        if [ "$OPT" != "" ]; then 
+            OVR=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\.${OPT}\." | sed "s=^${BOARD}\.menu\.${MENU}\.${OPT}\.=="`
+            mergeCfg "$OVR"
+        fi
+    done
+    # Override by menu selections from cmd
+    for SEL in $MSEL; do
+        MENU=`echo "${SEL}" | cut -d "." -f 1`
+        OPT=`echo "${SEL}" | cut -d "." -f 2`
+        OVR=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\.${OPT}\." | sed "s=^${BOARD}\.menu\.${MENU}\.${OPT}\.=="`
+        mergeCfg "$OVR"
+    done
+
+    # Some extra params
+    OVR="runtime.platform.path=${APATH}
+runtime.os=`uname`
+runtime.ide.version=$(arduinover)
+build.arch=ESP32
+build.fqbn=$(fqbn)"
+    mergeCfg "$OVR"
 }
 
 # Substitute params in dependent param value
@@ -114,43 +157,12 @@ fi
 BOARD=$1
 PARAM=$2
 
-# platform.txt
-CFG=`grep -h -v "^#" "${PLATFORMTXT}" | sed '/^$/d'`
-# platform.local.txt if exists
-if [ -r "${APATH}/platform.local.txt" ]; then
-    OVR=`grep -h -v "^#" "${PLATFORMLOCALTXT}" | sed '/^$/d'`
-    mergeCfg "$OVR"
+if [ -r $CACHEFILE ] && [ "`grep '^build.fqbn=' $CACHEFILE | cut -d '=' -f 2-`" = "$(fqbn)" ]; then
+    CFG=`cat $CACHEFILE`
+else
+    getCfg
+    echo "$CFG" > $CACHEFILE
 fi
-
-# Then boards.txt
-BRDTXT=`grep -h "^${BOARD}\." "${BOARDSTXT}"`
-OVR=`echo "$BRDTXT" | grep -v "^${BOARD}\.menu\." | sed "s=^${BOARD}\.=="`
-mergeCfg "$OVR"
-
-# By default select and apply each 1st menu item
-MENUS="`grep -h "^menu\." "${APATH}/boards.txt" | cut -d '=' -f 1 | cut -d '.' -f 2`"
-for MENU in $MENUS; do
-    OPT=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\." | head -n 1 | cut -d '=' -f 1 | cut -d '.' -f 4`
-    if [ "$OPT" != "" ]; then 
-        OVR=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\.${OPT}\." | sed "s=^${BOARD}\.menu\.${MENU}\.${OPT}\.=="`
-        mergeCfg "$OVR"
-    fi
-done
-# Override by menu selections from cmd
-for SEL in $MSEL; do
-    MENU=`echo "${SEL}" | cut -d "." -f 1`
-    OPT=`echo "${SEL}" | cut -d "." -f 2`
-    OVR=`echo "${BRDTXT}" | grep "^${BOARD}\.menu\.${MENU}\.${OPT}\." | sed "s=^${BOARD}\.menu\.${MENU}\.${OPT}\.=="`
-    mergeCfg "$OVR"
-done
-
-# Some extra params
-OVR="runtime.platform.path=${APATH}
-runtime.os=`uname`
-runtime.ide.version=$(arduinover)
-build.arch=ESP32
-build.fqbn=$(fqbn)"
-mergeCfg "$OVR"
 
 # Cmd overrides if specified
 if [ "${ECFG}" != "" ]; then
