@@ -1,6 +1,6 @@
 #!/bin/sh
 
-VERSION="0.6"
+VERSION="0.7"
 
 CACHEFILE="arduino-esp32-cfg.cache"
 
@@ -93,15 +93,15 @@ build.fqbn=$(fqbn)"
 # Get raw param value
 rawVal() {
     local LINE=`echo "$CFG" | grep "^${1}="`
-    if [ $? -ne 0 ]; then
+    if [ "$LINE" = "" ]; then
         if [ "$OEMPTYOK" = "1" ]; then
             echo ""
             return 0
         elif [ "$OPNAME" = "1" ]; then
-            echo "[${PARAM}]"
+            echo "[${1}]"
             return 0
         else
-            echo "${0}: Can't find ${BOARD}.${PARAM}" 1>&2
+            echo "${0}: Can't find ${BOARD}.${1}" 1>&2
             exit 1
         fi
     fi
