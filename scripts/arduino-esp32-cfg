@@ -22,7 +22,7 @@ arduinover() {
         head -n 1 ${APATH}/../../../lib/version.txt \
             | awk -F '.' '{ for (i = 1; i <= NF/2; ++i) { t = $i; $i = $(NF-i+1); $(NF-i+1) = t } }; 1' | awk -F ' ' '{ print 10000 * $3 + 100 * $2 + $1 }'
     else
-        echo "???"
+        echo "100"
     fi
 }
 
