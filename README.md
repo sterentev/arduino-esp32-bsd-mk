@@ -102,6 +102,7 @@ Arduino board.
 Other useful targets are
 - **core** - build arduino core
 - **libs** - build dependencies of the sketch
+- **pkg** - create _pkg_ subdir and save standalone upload script and data there
 - **clean** - clean all compilation results
 
 Have fun!
