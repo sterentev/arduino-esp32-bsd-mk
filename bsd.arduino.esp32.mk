@@ -73,7 +73,7 @@ SRCS=	${TARGET}.cpp
 INCLS?=	-I. -I${.CURDIR}
 
 
-.PHONY: precore core postcore libs partitions size flash install defines
+.PHONY: precore core postcore libs size flash install pkg defines
 
 ${TARGET}.partitions.bin:
 	${:!${CFG_SCRIPT} recipe.hooks.prebuild.1.pattern!}
@@ -107,11 +107,6 @@ precore:
 postcore:
 	${:!${CFG_SCRIPT} recipe.hooks.core.postbuild.1.pattern!}
 
-partitions:
-	${:!${CFG_SCRIPT} recipe.objcopy.partitions.bin.pattern!}
-CLEANFILES+=	${TARGET}.partitions.bin
-
-
 
 
 .SUFFIXES: .cpp .c
@@ -125,7 +120,7 @@ CORE_OBJS=	${CORE_SRCS:T:R:S/$/.o/g}
 CLEANFILES+=	${CORE_OBJS}
 
 
-LIB_SEARCH_DIRS?= ${.CURDIR} ${.CURDIR}/libraries ${ARDUINO_ESP32_DIR}/libraries ${ARDUINO_DIR}/libraries
+LIB_SEARCH_DIRS?=	${.CURDIR} ${.CURDIR}/libraries ${ARDUINO_ESP32_DIR}/libraries ${ARDUINO_DIR}/libraries
 
 LIB_SRCS=	${:!${ARDUINO_MK_DIR}/scripts/arduino-libsrcs-finder "${LIB_SEARCH_DIRS}" "${ARDUINO_LIBS}"!}
 .PATH:		${LIB_SRCS:H:O:u}
@@ -136,7 +131,7 @@ CLEANFILES+=	${LIB_OBJS}
 core:   core.a
 
 # Don't use recipe.ar.pattern, it's  one-by-one archiver
-core.a:		build_opt.h file_opts sdkconfig precore .WAIT ${CORE_OBJS} .WAIT postcore
+core.a:         build_opt.h file_opts sdkconfig precore .WAIT ${CORE_OBJS} .WAIT postcore
 	rm -f ${.TARGET}
 	${:!${CFG_SCRIPT} compiler.path!}${:!${CFG_SCRIPT} compiler.ar.cmd!} \
 	    ${:!${CFG_SCRIPT} compiler.ar.flags!} ${:!${CFG_SCRIPT} compiler.ar.extra_flags!} \
@@ -144,12 +139,11 @@ core.a:		build_opt.h file_opts sdkconfig precore .WAIT ${CORE_OBJS} .WAIT postco
 CLEANFILES+=	core.a
 
 
-libs:  build_opt.h file_opts sdkconfig .WAIT ${LIB_OBJS}
+libs:           build_opt.h file_opts sdkconfig .WAIT ${LIB_OBJS}
 
-${TARGET}.o:	build_opt.h file_opts sdkconfig
+${TARGET}.o:    build_opt.h file_opts sdkconfig
 
-
-${TARGET}.bin:	${TARGET}.partitions.bin ${TARGET}.bootloader.bin ${TARGET}.o libs core.a
+${TARGET}.bin:  ${TARGET}.partitions.bin ${TARGET}.bootloader.bin ${TARGET}.o libs core.a
 	${:!${ARDUINO_MK_DIR}/scripts/arduino-esp32-cfg -d "${ARDUINO_ESP32_DIR}" -m "${ARDUINO_BOARD_CFG}" \
 	    -c "${EXTRA_CFG}\nobject_files=${TARGET}.o ${LIB_OBJS}\narchive_file_path=core.a" \
 	    ${ARDUINO_BOARD} recipe.c.combine.pattern!}
@@ -207,7 +201,7 @@ MAXSIZE=	${:!${CFG_SCRIPT} upload.maximum_size!}
 MAXDATASIZE=	${:!${CFG_SCRIPT} upload.maximum_data_size!}
 
 # Don't use recipe.size.regex (broken)
-size:	${TARGET}.bin
+size: ${TARGET}.bin
 	@SIZE=`${SIZE_CMD} | awk -F ' ' '/^(\.iram0\.text|\.iram0\.vectors|\.dram0\.data|\.flash\.text|\.flash\.rodata)[[:space:]]+/{ print $$2 }' | paste -sd+ - | bc`; \
 	    printf "\nSketch uses %i bytes (%s%%) of program storage space. Maximum is %i bytes.\n" \
 	        $${SIZE} $$(( $${SIZE}*100/${MAXSIZE} )) ${MAXSIZE}
@@ -216,16 +210,26 @@ size:	${TARGET}.bin
 	        $${SIZE} $$(( $${SIZE}*100/${MAXDATASIZE} ))  $$(( ${MAXDATASIZE}-$${SIZE} ))  ${MAXDATASIZE}
 
 
-flash:  ${TARGET}.bin
-	${:!${CFG_SCRIPT} tools.esptool_py.path!}/${:!${CFG_SCRIPT} tools.esptool_py.cmd!} ${:!${CFG_SCRIPT} tools.esptool_py.upload.pattern_args!}
+UPLOAD_PATTERN=	${:!${CFG_SCRIPT} tools.esptool_py.path!}/${:!${CFG_SCRIPT} tools.esptool_py.cmd!} ${:!${CFG_SCRIPT} tools.esptool_py.upload.pattern_args!}
 
+# Upload sketch
+flash: ${TARGET}.bin
+	${UPLOAD_PATTERN}
+
+# alias
 install: flash
+
+PKG_DIR?=	${.CURDIR}/pkg
+
+# pkg: create dir with upload script and required data
+pkg: ${TARGET}.bin
+	@${ARDUINO_MK_DIR}/scripts/pkg-results '${PKG_DIR}' '${TARGET}' '${UPLOAD_PATTERN}'
 
 
 # defines: dump out all including the board specifc ones
 defines:
 	${:!${CFG_SCRIPT} compiler.path!}${:!${CFG_SCRIPT} compiler.c.cmd!}   -dM -E - < /dev/null | sort
 
-
+# Cleaning up
 clean:
 	rm -f ${CLEANFILES}

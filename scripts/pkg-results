@@ -1,0 +1,34 @@
+#!/bin/sh
+
+VERSION="0.1"
+
+usage() {
+    echo "Usage:"
+    echo "	$0 DIR SKETCH_NAME ORIGINAL_UPLOAD_CMD"
+    echo
+}
+
+if [ $# -lt 3 ]; then
+    usage
+    exit 1
+fi
+
+DIR="$1"
+NAME="$2"
+CMD="$3"
+OUTFILE="${DIR}/upload.sh"
+
+rm -rf "${DIR}"
+mkdir -p "${DIR}"
+
+for OUTBIN in ${NAME}.bootloader.bin ${NAME}.partitions.bin boot_app0.bin ${NAME}.bin; do
+    INBIN=`echo "$CMD" | grep -o "[^\"[:space:]]*${OUTBIN}[^\"[:space:]]*"`
+    cp -f ${INBIN} ${DIR}/${OUTBIN}
+    CMD=`echo "$CMD" | sed "s#${INBIN}#${OUTBIN}#" `
+done
+
+echo "#!/bin/sh" > ${OUTFILE}
+echo >> ${OUTFILE}
+echo "$CMD" >> ${OUTFILE}
+
+chmod +x ${OUTFILE}
