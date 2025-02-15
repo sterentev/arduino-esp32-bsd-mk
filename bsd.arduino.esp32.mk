@@ -60,6 +60,10 @@ EXTRA_CFG?=	build.project_name=${TARGET}\nbuild.path=.\nbuild.source.path=.\nbui
 CFG_SCRIPT=	${ARDUINO_MK_DIR}/scripts/arduino-esp32-cfg -r -d "${ARDUINO_ESP32_DIR}" -c "${EXTRA_CFG}" -m "${ARDUINO_BOARD_CFG}" ${ARDUINO_BOARD}
 CLEANFILES+=	arduino-esp32-cfg.cache
 
+CC=		${:!${CFG_SCRIPT} recipe.c.o.pattern!}
+CPP=		${:!${CFG_SCRIPT} recipe.cpp.o.pattern!}
+CXX=		${:!${CFG_SCRIPT} recipe.c.combine.pattern!}
+
 all:	size
 
 .if !defined(SRCS)
@@ -144,9 +148,7 @@ libs:           build_opt.h file_opts sdkconfig .WAIT ${LIB_OBJS}
 ${TARGET}.o:    build_opt.h file_opts sdkconfig
 
 ${TARGET}.bin:  ${TARGET}.partitions.bin ${TARGET}.bootloader.bin ${TARGET}.o libs core.a
-	${:!${ARDUINO_MK_DIR}/scripts/arduino-esp32-cfg -d "${ARDUINO_ESP32_DIR}" -m "${ARDUINO_BOARD_CFG}" \
-	    -c "${EXTRA_CFG}\nobject_files=${TARGET}.o ${LIB_OBJS}\narchive_file_path=core.a" \
-	    ${ARDUINO_BOARD} recipe.c.combine.pattern!}
+	${CXX:S/[object_files]/${TARGET}.o ${LIB_OBJS}/:S/[archive_file_path]/core.a/}
 	${:!${CFG_SCRIPT} recipe.objcopy.bin.pattern!}
 	${:!${CFG_SCRIPT} recipe.hooks.objcopy.postobjcopy.1.pattern!}
 	${:!${CFG_SCRIPT} recipe.hooks.objcopy.postobjcopy.2.pattern!}
@@ -157,15 +159,11 @@ CLEANFILES+=	${TARGET}.o ${TARGET}.elf ${TARGET}.bin ${TARGET}.merged.bin
 
 # .cpp to .o
 .cpp.o:
-	${:!${ARDUINO_MK_DIR}/scripts/arduino-esp32-cfg -d "${ARDUINO_ESP32_DIR}" \
-	    -c "${EXTRA_CFG}\nincludes=${INCLS}\nsource_file=${.IMPSRC}\nobject_file=${.TARGET}" \
-	    -m "${ARDUINO_BOARD_CFG}" ${ARDUINO_BOARD} recipe.cpp.o.pattern!}
+	${CPP:S/[includes]/${INCLS}/:S/[source_file]/${.IMPSRC}/:S/[object_file]/${.TARGET}/}
 
 # .c to .o
 .c.o:
-	${:!${ARDUINO_MK_DIR}/scripts/arduino-esp32-cfg -d "${ARDUINO_ESP32_DIR}" \
-	    -c "${EXTRA_CFG}\nincludes=${INCLS}\nsource_file=${.IMPSRC}\nobject_file=${.TARGET}" \
-	    -m "${ARDUINO_BOARD_CFG}" ${ARDUINO_BOARD} recipe.c.o.pattern!}
+	${CC:S/[includes]/${INCLS}/:S/[source_file]/${.IMPSRC}/:S/[object_file]/${.TARGET}/}
 
 
 # .ino cleanup
