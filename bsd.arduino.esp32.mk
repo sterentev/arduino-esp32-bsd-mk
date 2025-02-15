@@ -37,7 +37,7 @@
 .endif
 
 # ARDUINO_DIR
-PREFIX?=			/usr/local
+PREFIX?=		/usr/local
 ARDUINO_PREFIX?=	${PREFIX}
 ARDUINO_DIR?=		${ARDUINO_PREFIX}/arduino
 .if !exists(${ARDUINO_DIR})
@@ -56,21 +56,21 @@ ARDUINO_ESP32_DIR=	${ARDUINO_DIR}/hardware/espressif/esp32
 
 # CFG_SCRIPT and base config
 ARDUINO_PORT?=	/dev/cuaU0
-EXTRA_CFG?=		build.project_name=${TARGET}\nbuild.path=.\nbuild.source.path=.\nbuild.variant.path=.\nserial.port=${ARDUINO_PORT}
-CFG_SCRIPT=		${ARDUINO_MK_DIR}/scripts/arduino-esp32-cfg -d "${ARDUINO_ESP32_DIR}" -c "${EXTRA_CFG}" -m "${ARDUINO_BOARD_CFG}" ${ARDUINO_BOARD}
+EXTRA_CFG?=	build.project_name=${TARGET}\nbuild.path=.\nbuild.source.path=.\nbuild.variant.path=.\nserial.port=${ARDUINO_PORT}
+CFG_SCRIPT=	${ARDUINO_MK_DIR}/scripts/arduino-esp32-cfg -d "${ARDUINO_ESP32_DIR}" -c "${EXTRA_CFG}" -m "${ARDUINO_BOARD_CFG}" ${ARDUINO_BOARD}
 
 
-all:			${TARGET}.bin
+all:	size
 
 .if !defined(SRCS)
 .if exists(${.CURDIR}/${TARGET}.ino)
-SRCS=			${TARGET}.ino
+SRCS=	${TARGET}.ino
 .else
-SRCS=			${TARGET}.cpp
+SRCS=	${TARGET}.cpp
 .endif
 .endif
 
-INCLS?=			-I. -I${.CURDIR}
+INCLS?=	-I. -I${.CURDIR}
 
 
 .PHONY: precore core postcore libs partitions size flash install defines
@@ -131,7 +131,6 @@ LIB_SRCS=	${:!${ARDUINO_MK_DIR}/scripts/arduino-libsrcs-finder "${LIB_SEARCH_DIR
 .PATH:		${LIB_SRCS:H:O:u}
 LIB_OBJS=	${LIB_SRCS:T:R:S/$/.o/g}
 INCLS+=		${:!${ARDUINO_MK_DIR}/scripts/arduino-libsrcs-finder -H "${LIB_SEARCH_DIRS}" "${ARDUINO_LIBS}"!:H:O:u:C/^/-I/}
-
 CLEANFILES+=	${LIB_OBJS}
 
 core:   core.a
@@ -147,7 +146,7 @@ CLEANFILES+=	core.a
 
 libs:  build_opt.h file_opts sdkconfig .WAIT ${LIB_OBJS}
 
-${TARGET}.o:    build_opt.h file_opts sdkconfig
+${TARGET}.o:	build_opt.h file_opts sdkconfig
 
 
 ${TARGET}.bin:	${TARGET}.partitions.bin ${TARGET}.bootloader.bin ${TARGET}.o libs core.a
@@ -203,8 +202,18 @@ CLEANFILES+=	${.OBJDIR}/${_CPPSRC}
 	cat ${.IMPSRC} >> ${.IMPSRC:T:R}.cpp
 
 
-size: ${TARGET}.bin
-	${:!${CFG_SCRIPT} recipe.size.pattern!}
+SIZE_CMD=	${:!${CFG_SCRIPT} recipe.size.pattern!}
+MAXSIZE=	${:!${CFG_SCRIPT} upload.maximum_size!}
+MAXDATASIZE=	${:!${CFG_SCRIPT} upload.maximum_data_size!}
+
+# Don't use recipe.size.regex (broken)
+size:	${TARGET}.bin
+	@SIZE=`${SIZE_CMD} | awk -F ' ' '/^(\.iram0\.text|\.iram0\.vectors|\.dram0\.data|\.flash\.text|\.flash\.rodata)[[:space:]]+/{ print $$2 }' | paste -sd+ - | bc`; \
+	    printf "\nSketch uses %i bytes (%s%%) of program storage space. Maximum is %i bytes.\n" \
+	        $${SIZE} $$(( $${SIZE}*100/${MAXSIZE} )) ${MAXSIZE}
+	@SIZE=`${SIZE_CMD} | awk -F ' ' '/^(\.dram0\.data|\.dram0\.bss|\.noinit)[[:space:]]+/{ print $$2 }' | paste -sd+ - | bc`; \
+	    printf "Global variables use %i bytes (%s%%) of dynamic memory, leaving %i bytes for local variables. Maximum is %i bytes.\n" \
+	        $${SIZE} $$(( $${SIZE}*100/${MAXDATASIZE} ))  $$(( ${MAXDATASIZE}-$${SIZE} ))  ${MAXDATASIZE}
 
 
 flash:  ${TARGET}.bin
