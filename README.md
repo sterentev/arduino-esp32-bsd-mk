@@ -24,10 +24,10 @@ your sketch directory.
 You'll need to do some settings. For example you need to define
 your ESP32 board. All boards and their settings are collected
 in **boards.txt** file provided by Espressif. It is located under
-arduino directory in __hardware/espressif/esp32/boards.txt__.
+arduino directory in _hardware/espressif/esp32/boards.txt_.
 
 Compiler options, paths, tools, etc are defined in **platform.txt** file, i.e.
-__hardware/espressif/esp32/platform.txt__
+_hardware/espressif/esp32/platform.txt_
 
 Remember you can override settings made by Espressif in **platform.txt**
 by adding **platform.local.txt** next to it with your own settings.
@@ -50,31 +50,31 @@ and the inclusion
 ### Other useful settings
 
 First of all consider to create **obj** subdir in the directory with
-your sketch. __make__ command will write all compilation results there.
+your sketch. _make_ command will write all compilation results there.
 (Otherwise all such files will be written in your current dir)
 
 **SRCS** - List of .ino, .cpp and .c sources
-By default only __<your sketch>.ino__ OR __<your sketch>.cpp__ is assumed.
+By default only _<your sketch>.ino_ OR _<your sketch>.cpp_ is assumed.
 
 **ARDUINO_DIR** - Top level of Arduino installation.
-Default value is __/usr/local/arduino__
+Default value is _/usr/local/arduino_
 
 **ARDUINO_LIBS** - List of Arduino libraries. See below.
 
 **ARDUINO_BOARD_CFG** - list of confg menu selections for the board
-in the format __<menuA>.<valueA> <menuB>.<valueB> <menuC>.<valueC>__
+in the format _<menuA>.<valueA> <menuB>.<valueB> <menuC>.<valueC>_
 Available menus and their options are defined in **boards.txt** file.
-Example: __PartitionScheme.min_spiffs CPUFreq.40 UploadSpeed.115200__
+Example: _PartitionScheme.min_spiffs CPUFreq.40 UploadSpeed.115200_
 
 **ARDUINO_PORT** - Serial port device for programming the board.
-Default value is __/dev/cuaU0__
+Default value is _/dev/cuaU0_
 
 
 ### Libraries
 
 You'll have to list all libraries you used in your sketch (and its
 dependencies) in **ARDUINO_LIBS** variable. These libraries will be searched
-by __make__ as directory names.
+by _make_ as directory names.
 
 Create subdir **libraries** in your sketch dir and place your sketch
 dependencies (which are not a part of arduino and arduino-esp32 installations).
@@ -88,9 +88,9 @@ This could be changed by defining **LIB_SEARCH_DIRS** variable in your Makefile.
 
 Note about dirs sequence. In case library exists in several places
 (For example there's 2 WiFi libraries in
-__hardware/espressif/esp32/libraries/WiFi__ and __arduino/libraries/WiFi__)
-The first will be used because __${ARDUINO_ESP32_DIR}/libraries__
-precedes __${ARDUINO_DIR}/libraries__
+_hardware/espressif/esp32/libraries/WiFi_ and _arduino/libraries/WiFi_)
+The first will be used because _${ARDUINO_ESP32_DIR}/libraries_
+precedes _${ARDUINO_DIR}/libraries_
 
 
 ## Targets
