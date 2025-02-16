@@ -30,17 +30,17 @@ LIBDIRS=$2
 # Find first dir name occurence in the list of top dirs
 DIRS=""
 for LIB in $LIBDIRS; do
-    DIRS="${DIRS} $(find $TOPDIRS -depth 1 -type d \( -name "${LIB}" \) 2>/dev/null | head -n 1)"
+    DIRS="${DIRS} $(find $TOPDIRS -depth 1 \( -type d -o -type l \) \( -name "${LIB}" \) 2>/dev/null | head -n 1)"
 done
 
 SRCS=""
 for DIR in $DIRS; do
     if [ "$OH" = "1" ]; then
-        SRCS="${SRCS}\n$(find "${DIR}" "${DIR}/utility" -depth 1 -type f \( -name '*.h' \) 2>/dev/null)"
-        SRCS="${SRCS}\n$(find "${DIR}/src" "${DIR}/utility/src"  -type f \( -name '*.h' \) 2>/dev/null)"
+        SRCS="${SRCS}\n$(find "${DIR}/" "${DIR}/utility/" -depth 1 -type f \( -name '*.h' \) 2>/dev/null)"
+        SRCS="${SRCS}\n$(find "${DIR}/src/" "${DIR}/utility/src/"  -type f \( -name '*.h' \) 2>/dev/null)"
     else
-        SRCS="${SRCS}\n$(find "${DIR}" "${DIR}/utility" -depth 1 -type f \( -name '*.cpp' -o -name '*.c' \) 2>/dev/null)"
-        SRCS="${SRCS}\n$(find "${DIR}/src" "${DIR}/utility/src"  -type f \( -name '*.cpp' -o -name '*.c' \) 2>/dev/null)"
+        SRCS="${SRCS}\n$(find "${DIR}/" "${DIR}/utility/" -depth 1 -type f \( -name '*.cpp' -o -name '*.c' \) 2>/dev/null)"
+        SRCS="${SRCS}\n$(find "${DIR}/src/" "${DIR}/utility/src/"  -type f \( -name '*.cpp' -o -name '*.c' \) 2>/dev/null)"
     fi
 done
 
