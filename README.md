@@ -4,7 +4,7 @@ This Makefile was inspired by FreeBSD port devel/arduino-bsd-mk
 written by Craig Leres.
 
 It allows to build Arduino projects written for ESP32 microcontrollers
-from command line (without Arduino IDE).
+from command line (without Arduino IDE) using BSD make command.
 
 ## Prerequisites
 
@@ -30,7 +30,7 @@ Compiler options, paths, tools, etc are defined in **platform.txt** file, i.e.
 _hardware/espressif/esp32/platform.txt_
 
 Remember you can override settings made by Espressif in **platform.txt**
-by adding **platform.local.txt** next to it with your own settings.
+by adding **platform.local.txt** with your custom settings.
 This file affects not just your **Makefile** but also Arduino IDE.
 
 
@@ -38,9 +38,9 @@ This file affects not just your **Makefile** but also Arduino IDE.
 
 In your **Makefile** you'll be need to set following variables:
 
-- **TARGET**		Name of the sketch
-- **ARDUINO_BOARD**	Board name (find it in **boards.txt**)
-- **ARDUINO_MK_DIR**	Path to [bsd.arduino.esp32.mk](bsd.arduino.esp32.mk) installation
+- **TARGET** - Name of the sketch
+- **ARDUINO_BOARD** - Board name (find it in **boards.txt**)
+- **ARDUINO_MK_DIR** - Path to [bsd.arduino.esp32.mk](bsd.arduino.esp32.mk) installation
 
 and the inclusion
 ```
@@ -78,6 +78,8 @@ by _make_ as directory names.
 
 Create subdir **libraries** in your sketch dir and place your sketch
 dependencies (which are not a part of arduino and arduino-esp32 installations).
+It's possible to use soft link to library directory. So you can keep
+one library instance for all projects (as Arduino IDE does).
 
 Makefile will be searching for requested libraries in the following dirs:
 ```
@@ -95,9 +97,11 @@ precedes _${ARDUINO_DIR}/libraries_
 
 ## Targets
 
-Actually you can use **make** to build complete firmware and
-**make install** (or **make flash**) to write firmware in your
-Arduino board.
+Usually it's enough to use
+- _make_ to build complete code
+
+and
+- _make_ **install** (or _make_ **flash**) to write MCU code in your Arduino board.
 
 Other useful targets are
 - **core** - build arduino core
