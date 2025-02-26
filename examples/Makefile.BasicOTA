@@ -1,0 +1,10 @@
+
+TARGET= BasicOTA
+
+ARDUINO_BOARD=	heltec_wifi_kit_32
+
+ARDUINO_LIBS=	ArduinoOTA WiFi Network ESPmDNS Update
+
+ARDUINO_MK_DIR=	/usr/local/arduino-esp32-bsd-mk
+
+.include "${ARDUINO_MK_DIR}/bsd.arduino.esp32.mk"

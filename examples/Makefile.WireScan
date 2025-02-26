@@ -1,0 +1,10 @@
+
+TARGET= WireScan
+
+ARDUINO_BOARD=	esp32cam
+
+ARDUINO_LIBS=	Wire
+
+ARDUINO_MK_DIR=	/usr/local/arduino-esp32-bsd-mk
+
+.include "${ARDUINO_MK_DIR}/bsd.arduino.esp32.mk"

@@ -1,0 +1,10 @@
+
+TARGET= hello_world
+
+SRCS=	hello_world.ino constants.cpp model.cpp output_handler.cpp
+
+ARDUINO_BOARD=	esp32
+
+ARDUINO_MK_DIR=	/usr/local/arduino-esp32-bsd-mk
+
+.include "${ARDUINO_MK_DIR}/bsd.arduino.esp32.mk"

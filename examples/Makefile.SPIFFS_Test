@@ -1,0 +1,11 @@
+
+TARGET= SPIFFS_Test
+
+ARDUINO_BOARD=		esp32
+ARDUINO_BOARD_CFG=	PartitionScheme.no_ota CPUFreq.40 FlashMode.dio FlashFreq.40 EraseFlash.all
+
+ARDUINO_LIBS=	FS SPIFFS
+
+ARDUINO_MK_DIR=	/usr/local/arduino-esp32-bsd-mk
+
+.include "${ARDUINO_MK_DIR}/bsd.arduino.esp32.mk"

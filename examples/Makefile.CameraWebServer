@@ -1,0 +1,13 @@
+
+TARGET= CameraWebServer
+
+SRCS=	CameraWebServer.ino app_httpd.cpp
+
+ARDUINO_BOARD=		esp32cam
+ARDUINO_BOARD_CFG=	PSRAM.enabled PartitionScheme.custom FlashMode.dio
+
+ARDUINO_LIBS=	WiFi Network
+
+ARDUINO_MK_DIR=	/usr/local/arduino-esp32-bsd-mk
+
+.include "${ARDUINO_MK_DIR}/bsd.arduino.esp32.mk"

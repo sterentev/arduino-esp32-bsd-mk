@@ -1,0 +1,12 @@
+
+# Rename sketch to WebServerApp.ino before compiling to not interfere with WebServer library
+TARGET= WebServerApp
+
+ARDUINO_BOARD=		esp32
+ARDUINO_BOARD_CFG=	PartitionScheme.defaultffat
+
+ARDUINO_LIBS=	WebServer WiFi FS Network LittleFS FFat
+
+ARDUINO_MK_DIR=	/usr/local/arduino-esp32-bsd-mk
+
+.include "${ARDUINO_MK_DIR}/bsd.arduino.esp32.mk"
