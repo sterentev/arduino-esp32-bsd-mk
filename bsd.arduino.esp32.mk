@@ -76,6 +76,8 @@ SRCS=	${TARGET}.cpp
 
 INCLS?=	-I. -I${.CURDIR}
 
+OBJS+=		${SRCS:N*.h:R:S/$/.o/g}
+CLEANFILES+=	${OBJS}
 
 .PHONY: precore core postcore libs size flash install pkg defines
 
@@ -137,26 +139,23 @@ CLEANFILES+=	${LIB_OBJS}
 core:   core.a
 
 # Don't use recipe.ar.pattern, it's  one-by-one archiver
-core.a:         build_opt.h file_opts sdkconfig precore .WAIT ${CORE_OBJS} .WAIT postcore
+core.a: build_opt.h file_opts sdkconfig precore .WAIT ${CORE_OBJS} .WAIT postcore
 	rm -f ${.TARGET}
 	${:!${CFG_SCRIPT} compiler.path!}${:!${CFG_SCRIPT} compiler.ar.cmd!} \
 	    ${:!${CFG_SCRIPT} compiler.ar.flags!} ${:!${CFG_SCRIPT} compiler.ar.extra_flags!} \
 	    ${.TARGET} ${CORE_OBJS}
 CLEANFILES+=	core.a
 
+libs:   build_opt.h file_opts sdkconfig .WAIT ${LIB_OBJS}
 
-libs:           build_opt.h file_opts sdkconfig .WAIT ${LIB_OBJS}
-
-${TARGET}.o:    build_opt.h file_opts sdkconfig
-
-${TARGET}.bin:  ${TARGET}.partitions.bin ${TARGET}.bootloader.bin ${TARGET}.o libs core.a
-	${CXX:S/[object_files]/${TARGET}.o ${LIB_OBJS}/:S/[archive_file_path]/core.a/}
+${TARGET}.bin:  ${TARGET}.partitions.bin ${TARGET}.bootloader.bin build_opt.h file_opts sdkconfig .WAIT ${LIB_OBJS} ${OBJS} core.a
+	${CXX:S/[object_files]/${LIB_OBJS} ${OBJS}/:S/[archive_file_path]/core.a/}
 	${:!${CFG_SCRIPT} recipe.objcopy.bin.pattern!}
 	${:!${CFG_SCRIPT} recipe.hooks.objcopy.postobjcopy.1.pattern!}
 	${:!${CFG_SCRIPT} recipe.hooks.objcopy.postobjcopy.2.pattern!}
 	${:!${CFG_SCRIPT} recipe.hooks.objcopy.postobjcopy.3.pattern!}
 
-CLEANFILES+=	${TARGET}.o ${TARGET}.elf ${TARGET}.bin ${TARGET}.merged.bin
+CLEANFILES+=	${TARGET}.elf ${TARGET}.bin ${TARGET}.merged.bin
 
 
 # .cpp to .o
