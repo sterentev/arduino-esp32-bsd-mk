@@ -126,9 +126,11 @@ CLEANFILES+=	${CORE_OBJS}
 
 LIB_SEARCH_DIRS?=	${.CURDIR} ${.CURDIR}/libraries ${ARDUINO_ESP32_DIR}/libraries ${ARDUINO_DIR}/libraries
 
+.if !empty(ARDUINO_LIBS)
 LIB_SRCS=	${:!${ARDUINO_MK_DIR}/scripts/arduino-libsrcs-finder "${LIB_SEARCH_DIRS}" "${ARDUINO_LIBS}"!}
 .PATH:		${LIB_SRCS:H:O:u}
 LIB_OBJS=	${LIB_SRCS:T:R:S/$/.o/g}
+.endif
 INCLS+=		${:!${ARDUINO_MK_DIR}/scripts/arduino-libsrcs-finder -H "${LIB_SEARCH_DIRS}" "${ARDUINO_LIBS}"!:H:O:u:C/^/-I/}
 CLEANFILES+=	${LIB_OBJS}
 
