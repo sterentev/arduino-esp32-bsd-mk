@@ -115,7 +115,7 @@ postcore:
 
 .SUFFIXES: .cpp .c
 
-INCLS+=		-I${ARDUINO_ESP32_DIR}/variants/${ARDUINO_BOARD}
+INCLS+=		-I${ARDUINO_ESP32_DIR}/variants/${:!${CFG_SCRIPT} build.variant!}
 
 CORE_SRCS=	${:!find ${ARDUINO_ESP32_DIR}/cores/esp32 -type f \( -name '*.c' -o -name '*.cpp' \) || true!}
 .PATH:		${CORE_SRCS:H:O:u}
